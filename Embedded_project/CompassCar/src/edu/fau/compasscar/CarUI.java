@@ -8,7 +8,12 @@ import java.util.UUID;
 import android.app.Activity;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
+import android.content.Context;
 import android.content.Intent;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
@@ -18,14 +23,23 @@ import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
-public class CarUI extends Activity {
+public class CarUI extends Activity implements SensorEventListener {
 	public static final UUID MY_UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
 	public static final int SUCCESS_CONNECT = 0;
+	public static final int MESSAGE_READ = 1;
 	private TextView nameofDevice;
 	private Button led1;
 	private Button led2;
 	private Handler mHandler;
 	private ConnectedThread connected;
+	
+	//variable to get information from a sensor
+	private SensorManager mSensorManager;
+	private Sensor mAccelerometer;
+	private TextView xAccel;
+	private TextView yAccel;
+	//////////////////////////////
+	private char flag;
 
 
 	/** Called when the activity is first created. */
@@ -41,17 +55,40 @@ public class CarUI extends Activity {
 	    		// TODO Auto-generated method stub
 	    		super.handleMessage(msg);
 	    		switch (msg.what) {
+	    		
 				case SUCCESS_CONNECT:
 					Toast.makeText(getApplicationContext(), "Connected to test", Toast.LENGTH_LONG).show();
 					BluetoothSocket socket = (BluetoothSocket)msg.obj;
 					ConnectedThread connected = new ConnectedThread(socket);
 					break;
 	    		
+	    		case MESSAGE_READ:
+	    			byte[] readBuf = (byte[])msg.obj;
+	    			String s = new String(readBuf);
+	    			Toast.makeText(getApplicationContext(), s, Toast.LENGTH_LONG).show();
+	    			break;
 	    		}
+	    		
 	    	}
 	    };
+	    
+	    
+	    
 	}
 	
+	private void initSensor() {
+		// TODO Auto-generated method stub
+		xAccel= (TextView)findViewById(R.id.xAccel);
+		yAccel = (TextView)findViewById(R.id.yAccel);
+		mSensorManager = (SensorManager)getSystemService(Context.SENSOR_SERVICE);
+		//initializing to the accelerometer
+		mAccelerometer = mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+		//registering the listener
+		mSensorManager.registerListener(this, mAccelerometer, SensorManager.SENSOR_DELAY_NORMAL);
+		
+		
+	}
+
 	@Override
 	protected void onStart() {
 		// TODO Auto-generated method stub
@@ -68,8 +105,7 @@ public class CarUI extends Activity {
 		BluetoothDevice device = (BluetoothDevice)intent.getParcelableExtra("device");
 		
 		//method to initialize all the data
-		initialize(device);
-		
+		initialize(device); 
 		
 	}
 	
@@ -97,7 +133,8 @@ public class CarUI extends Activity {
 			@Override
 			public void onClick(View v) {
 				// TODO Auto-generated method stub
-				byte[] b = {0x0040}; 
+				//byte[] b = {0x0040}; 
+				int b = -10;
 				connected.write(b);
 				Toast.makeText(getApplicationContext(), "LED1 clicked", 0).show();
 			}
@@ -106,6 +143,8 @@ public class CarUI extends Activity {
 		
 		ConnectThread connect = new ConnectThread(device);
 		connect.run();
+		//Initializing sensor
+	    initSensor();
 	}
 	
 	private class ConnectThread extends Thread{
@@ -188,16 +227,28 @@ public class CarUI extends Activity {
     		//keep listening to the input stream until an exception is thrown
     		while(true){
     			try{
+    				
     				bytes = mmInStream.read(buffer);
-    				//mHandler.obtainMessage(MESSAGE_READ, arg1, arg2, obj)
+    				mHandler.obtainMessage(MESSAGE_READ, bytes, -1, buffer).sendToTarget();
     			}
     			catch(IOException e){
     				e.printStackTrace();
+    				break;
     			}
     		}
     	}
     	
+    
     	public void write(byte[] bytes){
+    		try{
+    			mmOutStream.write(bytes);
+    		}
+    		catch(IOException e){
+    			e.printStackTrace();
+    		}
+    	}
+    	
+    	public void write(int bytes){
     		try{
     			mmOutStream.write(bytes);
     		}
@@ -215,5 +266,42 @@ public class CarUI extends Activity {
     		}
     	}
     }
+
+	@Override
+	public void onSensorChanged(SensorEvent event) {
+		// TODO Auto-generated method stub
+		xAccel.setText("X: " + event.values[0]);
+		yAccel.setText("Y: " + event.values[1]);
+		int x = (int)event.values[0];
+		int y = (int)event.values[1];
+	
+		
+		//brake base case
+		if(x >= -1 && x < 1 && y >= 0 && y < 1){
+			connected.write(0);
+		}
+			
+		
+		//go forward
+		else if(x >= -5 && x < 0 && y >= 0 && y < 1){
+			//normalize jin values of 10
+			x = x * (-10);
+			connected.write(x);
+		}
+		
+		//go reverse
+		else if(x < 6 && x > 1 && y >= 0 && y < 1){
+			connected.write(x);
+		}
+	
+		
+		
+	}
+
+	@Override
+	public void onAccuracyChanged(Sensor sensor, int accuracy) {
+		// TODO Auto-generated method stub
+		
+	}
 
 }

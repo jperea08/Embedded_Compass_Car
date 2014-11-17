@@ -26,7 +26,11 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity android:name="CarUI" android:screenOrientation="portrait" android:permission="android.permission.BLUETOOTH"></activity>
+        <activity android:name="CarUI" 
+            android:screenOrientation="landscape"
+            android:permission="android.permission.BLUETOOTH">
+            
+        </activity>
     </application>
 
 </manifest>

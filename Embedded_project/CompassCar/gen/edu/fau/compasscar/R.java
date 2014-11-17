@@ -1650,7 +1650,7 @@ containing a value of this type.
         public static final int action_mode_bar=0x7f090030;
         public static final int action_mode_bar_stub=0x7f09002f;
         public static final int action_mode_close_button=0x7f090022;
-        public static final int action_settings=0x7f090047;
+        public static final int action_settings=0x7f090049;
         public static final int activity_chooser_view_content=0x7f090023;
         public static final int always=0x7f090014;
         public static final int beginning=0x7f09001b;
@@ -1708,6 +1708,8 @@ containing a value of this type.
         public static final int useLogo=0x7f090013;
         public static final int withText=0x7f090018;
         public static final int wrap_content=0x7f090009;
+        public static final int xAccel=0x7f090047;
+        public static final int yAccel=0x7f090048;
     }
     public static final class integer {
         /**  The maximum number of action buttons that should be permitted within
