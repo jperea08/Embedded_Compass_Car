@@ -39,7 +39,8 @@ public class CarUI extends Activity implements SensorEventListener {
 	private TextView xAccel;
 	private TextView yAccel;
 	//////////////////////////////
-	private char flag;
+	private String flag;
+	private String received = "";
 
 
 	/** Called when the activity is first created. */
@@ -60,12 +61,13 @@ public class CarUI extends Activity implements SensorEventListener {
 					Toast.makeText(getApplicationContext(), "Connected to test", Toast.LENGTH_LONG).show();
 					BluetoothSocket socket = (BluetoothSocket)msg.obj;
 					ConnectedThread connected = new ConnectedThread(socket);
+					connected.start();
 					break;
 	    		
 	    		case MESSAGE_READ:
 	    			byte[] readBuf = (byte[])msg.obj;
-	    			String s = new String(readBuf);
-	    			Toast.makeText(getApplicationContext(), s, Toast.LENGTH_LONG).show();
+	    			flag = new String(readBuf, 0, msg.arg1);
+	    			Toast.makeText(getApplicationContext(), received, Toast.LENGTH_LONG).show();
 	    			break;
 	    		}
 	    		
@@ -119,6 +121,7 @@ public class CarUI extends Activity implements SensorEventListener {
 	protected void onDestroy() {
 		// TODO Auto-generated method stub
 		super.onDestroy();
+		connected.cancel();
 	}
 
 	private void initialize(BluetoothDevice device) {
@@ -164,6 +167,7 @@ public class CarUI extends Activity implements SensorEventListener {
 			catch(IOException e){
 				e.printStackTrace();
 				Toast.makeText(getApplicationContext(), "could not open bluetooth socket", 0).show();
+				finish();
 			}
 			//setting the socket
 			mmSocket = tmp;
@@ -186,6 +190,7 @@ public class CarUI extends Activity implements SensorEventListener {
 				}
 				catch(IOException closeException){
 					closeException.printStackTrace();
+					finish();
 				}				
 			}
 
@@ -214,6 +219,7 @@ public class CarUI extends Activity implements SensorEventListener {
     		}
     		catch(IOException e){
     			e.printStackTrace();
+    			finish();
     		}
     		
     		mmInStream = tmpIn;
@@ -233,6 +239,7 @@ public class CarUI extends Activity implements SensorEventListener {
     			}
     			catch(IOException e){
     				e.printStackTrace();
+    				finish();
     				break;
     			}
     		}
@@ -245,6 +252,7 @@ public class CarUI extends Activity implements SensorEventListener {
     		}
     		catch(IOException e){
     			e.printStackTrace();
+    			finish();
     		}
     	}
     	
@@ -254,6 +262,7 @@ public class CarUI extends Activity implements SensorEventListener {
     		}
     		catch(IOException e){
     			e.printStackTrace();
+    			finish();
     		}
     	}
     	
@@ -263,6 +272,7 @@ public class CarUI extends Activity implements SensorEventListener {
     		}
     		catch(IOException ew){
     			ew.printStackTrace();
+    			finish();
     		}
     	}
     }
@@ -277,22 +287,36 @@ public class CarUI extends Activity implements SensorEventListener {
 	
 		
 		//brake base case
-		if(x >= -1 && x < 1 && y >= 0 && y < 1){
-			connected.write(0);
+		if(x > -1 && x < 1 && y >= 0 && y < 1){
+				connected.write(0);
 		}
 			
 		
 		//go forward
-		else if(x >= -5 && x < 0 && y >= 0 && y < 1){
-			//normalize jin values of 10
-			x = x * (-10);
-			connected.write(x);
+		else if(x >= -5 && x <= -1 && y >= 0 && y < 1){
+			//normalize in values of 10
+				x = x * (-10);
+				connected.write(x);
+			
 		}
 		
-		//go reverse
+		//go reverse, will send the actual values
 		else if(x < 6 && x > 1 && y >= 0 && y < 1){
-			connected.write(x);
+				connected.write(x);
 		}
+		
+		//go left
+		else if(y >= -5 && y <= -1 && (x < 6 && x > 1 || x >= -5 && x <= -1 ||x > -1 && x < 1)){
+			//normalize in values of 20
+			y = y * (-50);
+			connected.write(y);
+		}
+		//go right
+		else if(y < 6 && y > 1 && (x < 6 && x > 1 || x >= -5 && x <= -1 ||x > -1 && x < 1)){
+			//normalize to values of 25
+			y = y * 250;
+			connected.write(y);
+		} 	
 	
 		
 		
